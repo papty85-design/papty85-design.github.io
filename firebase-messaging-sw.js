@@ -21,16 +21,75 @@ firebase.initializeApp(firebaseConfig);
 // Recupera l'istanza di messaging
 const messaging = firebase.messaging();
 
+// FUNZIONE HELPER PER FORMATTARE I MESSAGGI
+function getNotificationTitle(payload) {
+  // Priorità: notification.title > data.title > default
+  if (payload.notification && payload.notification.title) {
+    return payload.notification.title;
+  }
+  if (payload.data && payload.data.title) {
+    return payload.data.title;
+  }
+  return 'Menu Famiglia';
+}
+
+function getNotificationBody(payload) {
+  // Priorità: notification.body > data.body > messaggio formattato dai data
+  if (payload.notification && payload.notification.body) {
+    return payload.notification.body;
+  }
+  
+  if (payload.data && payload.data.body) {
+    return payload.data.body;
+  }
+  
+  // Se c'è un tipo specifico di notifica nei data, formatta il messaggio
+  if (payload.data) {
+    const type = payload.data.type;
+    const day = payload.data.day;
+    
+    switch(type) {
+      case 'menu_update':
+        if (day) {
+          const giorni = {
+            'Lunedì': 'Lunedì',
+            'Martedì': 'Martedì', 
+            'Mercoledì': 'Mercoledì',
+            'Giovedì': 'Giovedì',
+            'Venerdì': 'Venerdì',
+            'Sabato': 'Sabato',
+            'Domenica': 'Domenica'
+          };
+          return `${giorni[day] || day} - Menu aggiornato da ${payload.data.from || 'un membro della famiglia'}`;
+        }
+        return 'Il menu è stato aggiornato';
+        
+      case 'shopping_update':
+        return 'La lista della spesa è stata modificata';
+        
+      case 'member_joined':
+        return `${payload.data.memberName || 'Un nuovo membro'} si è unito alla famiglia!`;
+        
+      default:
+        return 'Nuovo aggiornamento disponibile';
+    }
+  }
+  
+  return 'Nuovo aggiornamento disponibile';
+}
+
 // Gestione notifiche in background
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Messaggio ricevuto in background:', payload);
 
-  const notificationTitle = payload.notification?.title || 'Menu Famiglia';
+  const notificationTitle = getNotificationTitle(payload);
+  const notificationBody = getNotificationBody(payload);
+  
   const notificationOptions = {
-    body: payload.notification?.body || 'Nuovo aggiornamento disponibile',
+    body: notificationBody,
     icon: '/MealPlanner/icon-192.png',
     badge: '/MealPlanner/icon-192.png',
-    data: payload.data,
+    data: payload.data || {},
     tag: 'menu-famiglia-notification',
     requireInteraction: false,
     vibrate: [200, 100, 200],

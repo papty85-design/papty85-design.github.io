@@ -1,5 +1,5 @@
-// Firebase Messaging Service Worker
-// Questo file gestisce le notifiche push in background
+// Firebase Messaging Service Worker - PER /MealPlanner/
+// Questo file DEVE essere nella root o nella cartella MealPlanner
 
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
@@ -23,16 +23,17 @@ const messaging = firebase.messaging();
 
 // Gestione notifiche in background
 messaging.onBackgroundMessage((payload) => {
-  console.log('Messaggio ricevuto in background:', payload);
+  console.log('[firebase-messaging-sw.js] Messaggio ricevuto in background:', payload);
 
   const notificationTitle = payload.notification?.title || 'Menu Famiglia';
   const notificationOptions = {
     body: payload.notification?.body || 'Nuovo aggiornamento disponibile',
-    icon: payload.notification?.icon || '/MealPlanner/icon-192.png',
+    icon: '/MealPlanner/icon-192.png',
     badge: '/MealPlanner/icon-192.png',
     data: payload.data,
     tag: 'menu-famiglia-notification',
     requireInteraction: false,
+    vibrate: [200, 100, 200],
     actions: [
       {
         action: 'open',
@@ -50,6 +51,7 @@ messaging.onBackgroundMessage((payload) => {
 
 // Gestione click sulla notifica
 self.addEventListener('notificationclick', (event) => {
+  console.log('[firebase-messaging-sw.js] Notifica cliccata:', event);
   event.notification.close();
 
   if (event.action === 'open' || !event.action) {
@@ -74,9 +76,21 @@ self.addEventListener('notificationclick', (event) => {
 
 // Gestione errori
 self.addEventListener('error', (event) => {
-  console.error('Service Worker error:', event.error);
+  console.error('[firebase-messaging-sw.js] Service Worker error:', event.error);
 });
 
 self.addEventListener('unhandledrejection', (event) => {
-  console.error('Service Worker unhandled rejection:', event.reason);
+  console.error('[firebase-messaging-sw.js] Service Worker unhandled rejection:', event.reason);
+});
+
+// Log quando il service worker viene installato
+self.addEventListener('install', (event) => {
+  console.log('[firebase-messaging-sw.js] Service Worker installato');
+  self.skipWaiting();
+});
+
+// Log quando il service worker viene attivato
+self.addEventListener('activate', (event) => {
+  console.log('[firebase-messaging-sw.js] Service Worker attivato');
+  event.waitUntil(clients.claim());
 });
